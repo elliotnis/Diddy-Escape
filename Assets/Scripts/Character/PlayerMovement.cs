@@ -69,8 +69,13 @@ public class PlayerMovement : MonoBehaviour
         HandleExternalForces();
         UpdateFOV();
 
+        if (Input.GetButtonDown("Inventory"))
+        {
+            Debug.Log("Inventory button pressed");
+         }
+
         // Move the character (combine input velocity + external forces)
-        Vector3 finalVelocity = velocity + externalVelocity;
+            Vector3 finalVelocity = velocity + externalVelocity;
         controller.Move(finalVelocity * Time.deltaTime);
     }
 
