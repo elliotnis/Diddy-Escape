@@ -1,3 +1,6 @@
+using System;
+using System.Security.Cryptography;
+using System.Threading;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -25,7 +28,11 @@ public class PlayerMovement : MonoBehaviour
     [Header("Physics")]
     public float pushbackResistance = 0.5f;
     public float pushbackDecay = 5f;
-    
+
+    [Header("Player Stats")]
+    public float health = 100f;
+    public float stamina = 100f;
+
     private CharacterController controller;
     private Vector3 velocity;
     private Vector3 externalVelocity;
@@ -122,14 +129,14 @@ public class PlayerMovement : MonoBehaviour
         float moveZ = Input.GetAxis("Vertical");
         
         // Check for sprint input (Left Shift)
-        isSprinting = Input.GetKey(KeyCode.LeftShift) && moveZ > 0.1f;
+        isSprinting = Input.GetKey(KeyCode.LeftShift) && moveZ > 0.1f && stamina > 0;
         
         // Get input direction in local space
         Vector3 inputDirection = new Vector3(moveX, 0, moveZ).normalized;
         
         // Current horizontal velocity in local space
         Vector3 localHorizontalVelocity = transform.InverseTransformDirection(new Vector3(velocity.x, 0, velocity.z));
-        
+
         if (inputDirection.magnitude > 0.1f)
         {
             // Calculate target velocity in local space
@@ -142,8 +149,14 @@ public class PlayerMovement : MonoBehaviour
             if (isSprinting)
             {
                 currentMaxForwardSpeed *= sprintSpeedMultiplier;
+                // Testing Stamina
+                stamina = Mathf.Max(0f, stamina - 5.25f * Time.deltaTime);
             }
-            
+
+            if (! Input.GetKey(KeyCode.LeftShift))
+            {
+                stamina = Mathf.Min(stamina + 5f * Time.deltaTime, 100f) ;
+            }
             if (isGrounded)
             {
                 currentAcceleration = acceleration;
@@ -205,6 +218,8 @@ public class PlayerMovement : MonoBehaviour
     public void AddExternalForce(Vector3 force)
     {
         externalVelocity += force * pushbackResistance;
+        // Testing Health
+        health -= UnityEngine.Random.Range(1f, 5f) * 0.25f;
     }
 
     // Handle collisions with other CharacterControllers
