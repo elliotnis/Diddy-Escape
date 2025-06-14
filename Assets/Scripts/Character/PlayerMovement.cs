@@ -12,19 +12,19 @@ public class PlayerMovement : MonoBehaviour
     public float deceleration = 25f;
     public float airAcceleration = 10f;
     public float sprintSpeedMultiplier = 1.5f;  // Speed multiplier when sprinting
-    
+
     [Header("Jumping")]
     public float jumpHeight = 2f;
     public float gravity = -30f;
-    
+
     [Header("Mouse Look")]
     public float mouseSensitivity = 2f;
     public float mouseSmoothing = 0.1f;
-    
+
     [Header("Sprint FOV")]
     public float sprintFOVIncrease = 10f;  // How much to increase FOV when sprinting
     public float fovChangeSpeed = 5f;      // How fast FOV changes
-    
+
     [Header("Physics")]
     public float pushbackResistance = 0.5f;
     public float pushbackDecay = 5f;
@@ -42,22 +42,26 @@ public class PlayerMovement : MonoBehaviour
     private Camera playerCamera;
     private float defaultFOV;
     private bool isSprinting;
-    
+
     // Smoothing variables
     private Vector2 smoothedMouseDelta;
     private Vector2 currentMouseDelta;
 
+    private inventory_manager inventoryManager;
     void Start()
     {
+
+        inventoryManager = GameObject.Find("Inventory_Canvas").GetComponent<inventory_manager>();
+
         controller = GetComponent<CharacterController>();
         playerCamera = GetComponentInChildren<Camera>();
-        
+
         // Store the default FOV
         if (playerCamera != null)
             defaultFOV = playerCamera.fieldOfView;
-            
+
         // Lock cursor to center of screen
-        Cursor.lockState = CursorLockMode.Locked;
+        // Cursor.lockState = CursorLockMode.Locked;
     }
 
     void Update()
@@ -69,23 +73,20 @@ public class PlayerMovement : MonoBehaviour
         HandleExternalForces();
         UpdateFOV();
 
-        if (Input.GetButtonDown("Inventory"))
-        {
-            Debug.Log("Inventory button pressed");
-         }
-
         // Move the character (combine input velocity + external forces)
-            Vector3 finalVelocity = velocity + externalVelocity;
+        Vector3 finalVelocity = velocity + externalVelocity;
+
         controller.Move(finalVelocity * Time.deltaTime);
+
     }
 
     void UpdateFOV()
     {
         if (playerCamera == null) return;
-        
+
         // Calculate target FOV based on sprint state
         float targetFOV = isSprinting ? defaultFOV + sprintFOVIncrease : defaultFOV;
-        
+
         // Smoothly transition FOV
         playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFOV, fovChangeSpeed * Time.deltaTime);
     }
@@ -103,7 +104,7 @@ public class PlayerMovement : MonoBehaviour
             Input.GetAxisRaw("Mouse X") * mouseSensitivity,
             Input.GetAxisRaw("Mouse Y") * mouseSensitivity
         );
-        
+
         // Low-pass filter for smoothing
         currentMouseDelta = Vector2.Lerp(currentMouseDelta, rawMouseDelta, mouseSmoothing);
         smoothedMouseDelta = currentMouseDelta;
@@ -114,7 +115,7 @@ public class PlayerMovement : MonoBehaviour
 
         // Rotate the player body horizontally
         transform.Rotate(Vector3.up * mouseX);
-        
+
         // Rotate the camera vertically
         xRotation -= mouseY;
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
@@ -128,17 +129,17 @@ public class PlayerMovement : MonoBehaviour
     {
         // Check if grounded
         isGrounded = controller.isGrounded;
-        
+
         // Movement input
         float moveX = Input.GetAxis("Horizontal");
         float moveZ = Input.GetAxis("Vertical");
-        
+
         // Check for sprint input (Left Shift)
         isSprinting = Input.GetKey(KeyCode.LeftShift) && moveZ > 0.1f && stamina > 0;
-        
+
         // Get input direction in local space
         Vector3 inputDirection = new Vector3(moveX, 0, moveZ).normalized;
-        
+
         // Current horizontal velocity in local space
         Vector3 localHorizontalVelocity = transform.InverseTransformDirection(new Vector3(velocity.x, 0, velocity.z));
 
@@ -158,9 +159,9 @@ public class PlayerMovement : MonoBehaviour
                 stamina = Mathf.Max(0f, stamina - 5.25f * Time.deltaTime);
             }
 
-            if (! Input.GetKey(KeyCode.LeftShift))
+            if (!Input.GetKey(KeyCode.LeftShift))
             {
-                stamina = Mathf.Min(stamina + 5f * Time.deltaTime, 100f) ;
+                stamina = Mathf.Min(stamina + 5f * Time.deltaTime, 100f);
             }
             if (isGrounded)
             {
@@ -171,15 +172,15 @@ public class PlayerMovement : MonoBehaviour
                 // Air movement - more restrictive
                 currentAcceleration = airAcceleration;
             }
-            
+
             // Set target velocity with separate forward/sideways limits
             targetLocalVelocity.z = inputDirection.z * currentMaxForwardSpeed; // Forward/backward
             targetLocalVelocity.x = inputDirection.x * currentMaxSidewaysSpeed; // Left/right
-            
+
             // Accelerate towards target velocity
-            localHorizontalVelocity = Vector3.MoveTowards(localHorizontalVelocity, targetLocalVelocity, 
+            localHorizontalVelocity = Vector3.MoveTowards(localHorizontalVelocity, targetLocalVelocity,
                 currentAcceleration * Time.deltaTime);
-            
+
             // Clamp each axis separately
             localHorizontalVelocity.z = Mathf.Clamp(localHorizontalVelocity.z, -currentMaxForwardSpeed, currentMaxForwardSpeed);
             localHorizontalVelocity.x = Mathf.Clamp(localHorizontalVelocity.x, -currentMaxSidewaysSpeed, currentMaxSidewaysSpeed);
@@ -189,12 +190,12 @@ public class PlayerMovement : MonoBehaviour
             // Decelerate when no input
             if (isGrounded)
             {
-                localHorizontalVelocity = Vector3.MoveTowards(localHorizontalVelocity, Vector3.zero, 
+                localHorizontalVelocity = Vector3.MoveTowards(localHorizontalVelocity, Vector3.zero,
                     deceleration * Time.deltaTime);
             }
             // In air, maintain horizontal velocity (no friction)
         }
-        
+
         // Convert back to world space and apply to main velocity
         Vector3 worldHorizontalVelocity = transform.TransformDirection(localHorizontalVelocity);
         velocity.x = worldHorizontalVelocity.x;
@@ -207,7 +208,7 @@ public class PlayerMovement : MonoBehaviour
         {
             velocity.y = -2f; // Small downward force to keep grounded
         }
-        
+
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -230,6 +231,14 @@ public class PlayerMovement : MonoBehaviour
     // Handle collisions with other CharacterControllers
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
+        //Check if we picked up baby oil
+        if (hit.gameObject.CompareTag("Baby Oil"))
+        {
+            Debug.Log("Baby oil picked up");
+            Destroy(hit.gameObject);
+            inventoryManager.AddItemToInventory("Baby Oil", hit.gameObject.GetComponent<base_pickup>().item_icon);
+        }
+
         // Skip if hitting ground/floor
         if (hit.normal.y > 0.3f) return;
 
@@ -257,4 +266,6 @@ public class PlayerMovement : MonoBehaviour
         // Always get pushed back ourselves from any collision
         AddExternalForce(-push * 2f);
     }
+
+    
 }
